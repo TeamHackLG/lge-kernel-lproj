@@ -1,0 +1,96 @@
+From 943019f71dd78d5c672d8b3a0405a6cba932109e Mon Sep 17 00:00:00 2001
+From: Tatyana Brokhman <tlinder@codeaurora.org>
+Date: Thu, 20 Dec 2012 19:23:58 +0200
+Subject: [PATCH] row: Add support for urgent request handling
+
+This patch adds support for handling urgent requests.
+ROW queue can be marked as "urgent" so if it was un-served in last
+dispatch cycle and a request was added to it - it will trigger
+issuing an urgent-request-notification to the block device driver.
+The block device driver may choose at stop the transmission of current
+ongoing request to handle the urgent one. Foe example: long WRITE may
+be stopped to handle an urgent READ. This decreases READ latency.
+
+Change-Id: I84954c13f5e3b1b5caeadc9fe1f9aa21208cb35e
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+---
+ block/row-iosched.c | 42 +++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/block/row-iosched.c b/block/row-iosched.c
+index e71679a..a4184da 100644
+--- a/block/row-iosched.c
++++ b/block/row-iosched.c
+@@ -58,6 +58,17 @@ enum row_queue_prio {
+ 	false,	/* ROWQ_PRIO_LOW_SWRITE */
+ };
+ 
++/* Flags indicating whether the queue can notify on urgent requests */
++static const bool urgent_queues[] = {
++	true,	/* ROWQ_PRIO_HIGH_READ */
++	true,	/* ROWQ_PRIO_REG_READ */
++	false,	/* ROWQ_PRIO_HIGH_SWRITE */
++	false,	/* ROWQ_PRIO_REG_SWRITE */
++	false,	/* ROWQ_PRIO_REG_WRITE */
++	false,	/* ROWQ_PRIO_LOW_READ */
++	false,	/* ROWQ_PRIO_LOW_SWRITE */
++};
++
+ /* Default values for row queues quantums in each dispatch cycle */
+ static const int queue_quantum[] = {
+ 	100,	/* ROWQ_PRIO_HIGH_READ */
+@@ -271,7 +282,13 @@ static void row_add_request(struct request_queue *q,
+ 
+ 		rqueue->idle_data.last_insert_time = ktime_get();
+ 	}
+-	row_log_rowq(rd, rqueue->prio, "added request");
++	if (urgent_queues[rqueue->prio] &&
++	    row_rowq_unserved(rd, rqueue->prio)) {
++		row_log_rowq(rd, rqueue->prio,
++			     "added urgent req curr_queue = %d",
++			     rd->curr_queue);
++	} else
++		row_log_rowq(rd, rqueue->prio, "added request");
+ }
+ 
+ /**
+@@ -307,6 +324,28 @@ static int row_reinsert_req(struct request_queue *q,
+ }
+ 
+ /**
++ * row_urgent_pending() - Return TRUE if there is an urgent
++ *			  request on scheduler
++ * @q:	requests queue
++ */
++static bool row_urgent_pending(struct request_queue *q)
++{
++	struct row_data *rd = q->elevator->elevator_data;
++	int i;
++
++	for (i = 0; i < ROWQ_MAX_PRIO; i++)
++		if (urgent_queues[i] && row_rowq_unserved(rd, i) &&
++		    !list_empty(&rd->row_queues[i].rqueue.fifo)) {
++			row_log_rowq(rd, i,
++				     "Urgent request pending (curr=%i)",
++				     rd->curr_queue);
++			return true;
++		}
++
++	return false;
++}
++
++/**
+  * row_remove_request() -  Remove given request from scheduler
+  * @q:	requests queue
+  * @rq:	request to remove
+@@ -697,6 +736,7 @@ static ssize_t __FUNC(struct elevator_queue *e,				\
+ 		.elevator_dispatch_fn		= row_dispatch_requests,
+ 		.elevator_add_req_fn		= row_add_request,
+ 		.elevator_reinsert_req_fn	= row_reinsert_req,
++		.elevator_is_urgent_fn		= row_urgent_pending,
+ 		.elevator_former_req_fn		= elv_rb_former_request,
+ 		.elevator_latter_req_fn		= elv_rb_latter_request,
+ 		.elevator_set_req_fn		= row_set_request,
+-- 
+1.8.1.6
+

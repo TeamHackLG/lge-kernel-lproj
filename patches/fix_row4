@@ -1,0 +1,198 @@
+From 7b4f0d3061d4ee695fb22ecad83a6ae297d96879 Mon Sep 17 00:00:00 2001
+From: Tatyana Brokhman <tlinder@codeaurora.org>
+Date: Tue, 4 Dec 2012 16:04:15 +0200
+Subject: [PATCH] block: Add API for urgent request handling
+
+This patch add support in block & elevator layers for handling
+urgent requests. The decision if a request is urgent or not is taken
+by the scheduler. Urgent request notification is passed to the underlying
+block device driver (eMMC for example). Block device driver may decide to
+interrupt the currently running low priority request to serve the new
+urgent request. By doing so READ latency is greatly reduced in read&write
+collision scenarios.
+
+Note that if the current scheduler doesn't implement the urgent request
+mechanism, this code path is never activated.
+
+Change-Id: I8aa74b9b45c0d3a2221bd4e82ea76eb4103e7cfa
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+---
+ block/blk-core.c         | 26 ++++++++++++++++++++++++--
+ block/blk-settings.c     | 12 ++++++++++++
+ block/blk.h              | 11 +++++++++++
+ block/elevator.c         |  5 +++++
+ include/linux/blkdev.h   |  4 ++++
+ include/linux/elevator.h |  2 ++
+ 6 files changed, 58 insertions(+), 2 deletions(-)
+
+diff --git a/block/blk-core.c b/block/blk-core.c
+index db7a735..0edec37 100644
+--- a/block/blk-core.c
++++ b/block/blk-core.c
+@@ -297,13 +297,26 @@ void blk_sync_queue(struct request_queue *q)
+  * Description:
+  *    See @blk_run_queue. This variant must be called with the queue lock
+  *    held and interrupts disabled.
++ *    Device driver will be notified of an urgent request
++ *    pending under the following conditions:
++ *    1. The driver and the current scheduler support urgent reques handling
++ *    2. There is an urgent request pending in the scheduler
++ *    3. There isn't already an urgent request in flight, meaning previously
++ *       notified urgent request completed (!q->notified_urgent)
+  */
+ void __blk_run_queue(struct request_queue *q)
+ {
+ 	if (unlikely(blk_queue_stopped(q)))
+ 		return;
+ 
+-	q->request_fn(q);
++	if (!q->notified_urgent &&
++		q->elevator->type->ops.elevator_is_urgent_fn &&
++		q->urgent_request_fn &&
++		q->elevator->type->ops.elevator_is_urgent_fn(q)) {
++		q->notified_urgent = true;
++		q->urgent_request_fn(q);
++	} else
++		q->request_fn(q);
+ }
+ EXPORT_SYMBOL(__blk_run_queue);
+ 
+@@ -2117,8 +2130,17 @@ struct request *blk_fetch_request(struct request_queue *q)
+ 	struct request *rq;
+ 
+ 	rq = blk_peek_request(q);
+-	if (rq)
++	if (rq) {
++		/*
++		 * Assumption: the next request fetched from scheduler after we
++		 * notified "urgent request pending" - will be the urgent one
++		 */
++		if (q->notified_urgent && !q->dispatched_urgent) {
++			q->dispatched_urgent = true;
++			(void)blk_mark_rq_urgent(rq);
++		}
+ 		blk_start_request(rq);
++	}
+ 	return rq;
+ }
+ EXPORT_SYMBOL(blk_fetch_request);
+diff --git a/block/blk-settings.c b/block/blk-settings.c
+index d3234fc..579328c 100644
+--- a/block/blk-settings.c
++++ b/block/blk-settings.c
+@@ -100,6 +100,18 @@ void blk_queue_lld_busy(struct request_queue *q, lld_busy_fn *fn)
+ EXPORT_SYMBOL_GPL(blk_queue_lld_busy);
+ 
+ /**
++ * blk_urgent_request() - Set an urgent_request handler function for queue
++ * @q:		queue
++ * @fn:		handler for urgent requests
++ *
++ */
++void blk_urgent_request(struct request_queue *q, request_fn_proc *fn)
++{
++	q->urgent_request_fn = fn;
++}
++EXPORT_SYMBOL(blk_urgent_request);
++
++/**
+  * blk_set_default_limits - reset limits to default values
+  * @lim:  the queue_limits structure to reset
+  *
+diff --git a/block/blk.h b/block/blk.h
+index d45be87..a52209f 100644
+--- a/block/blk.h
++++ b/block/blk.h
+@@ -39,6 +39,7 @@ bool __blk_end_bidi_request(struct request *rq, int error,
+  */
+ enum rq_atomic_flags {
+ 	REQ_ATOM_COMPLETE = 0,
++	REQ_ATOM_URGENT = 1,
+ };
+ 
+ /*
+@@ -55,6 +56,16 @@ static inline void blk_clear_rq_complete(struct request *rq)
+ 	clear_bit(REQ_ATOM_COMPLETE, &rq->atomic_flags);
+ }
+ 
++static inline int blk_mark_rq_urgent(struct request *rq)
++{
++	return test_and_set_bit(REQ_ATOM_URGENT, &rq->atomic_flags);
++}
++
++static inline void blk_clear_rq_urgent(struct request *rq)
++{
++	clear_bit(REQ_ATOM_URGENT, &rq->atomic_flags);
++}
++
+ /*
+  * Internal elevator interface
+  */
+diff --git a/block/elevator.c b/block/elevator.c
+index 737d5dd..efec457 100644
+--- a/block/elevator.c
++++ b/block/elevator.c
+@@ -814,6 +814,11 @@ void elv_completed_request(struct request_queue *q, struct request *rq)
+ {
+ 	struct elevator_queue *e = q->elevator;
+ 
++	if (test_bit(REQ_ATOM_URGENT, &rq->atomic_flags)) {
++		q->notified_urgent = false;
++		q->dispatched_urgent = false;
++		blk_clear_rq_urgent(rq);
++	}
+ 	/*
+ 	 * request is released from the driver, io must be done
+ 	 */
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index a7875ec..f2bd5cb 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -282,6 +282,7 @@ struct request_queue {
+ 	struct request_list	rq;
+ 
+ 	request_fn_proc		*request_fn;
++	request_fn_proc		*urgent_request_fn;
+ 	make_request_fn		*make_request_fn;
+ 	prep_rq_fn		*prep_rq_fn;
+ 	unprep_rq_fn		*unprep_rq_fn;
+@@ -365,6 +366,8 @@ struct request_queue {
+ 	struct list_head	icq_list;
+ 
+ 	struct queue_limits	limits;
++	bool			notified_urgent;
++	bool			dispatched_urgent;
+ 
+ 	/*
+ 	 * sg stuff
+@@ -824,6 +827,7 @@ extern struct request_queue *blk_init_queue_node(request_fn_proc *rfn,
+ extern struct request_queue *blk_init_queue(request_fn_proc *, spinlock_t *);
+ extern struct request_queue *blk_init_allocated_queue(struct request_queue *,
+ 						      request_fn_proc *, spinlock_t *);
++extern void blk_urgent_request(struct request_queue *q, request_fn_proc *fn);
+ extern void blk_cleanup_queue(struct request_queue *);
+ extern void blk_queue_make_request(struct request_queue *, make_request_fn *);
+ extern void blk_queue_bounce_limit(struct request_queue *, u64);
+diff --git a/include/linux/elevator.h b/include/linux/elevator.h
+index c07b63b..b36b28f 100644
+--- a/include/linux/elevator.h
++++ b/include/linux/elevator.h
+@@ -24,6 +24,7 @@ typedef void (elevator_bio_merged_fn) (struct request_queue *,
+ typedef void (elevator_add_req_fn) (struct request_queue *, struct request *);
+ typedef int (elevator_reinsert_req_fn) (struct request_queue *,
+ 					struct request *);
++typedef bool (elevator_is_urgent_fn) (struct request_queue *);
+ typedef struct request *(elevator_request_list_fn) (struct request_queue *, struct request *);
+ typedef void (elevator_completed_req_fn) (struct request_queue *, struct request *);
+ typedef int (elevator_may_queue_fn) (struct request_queue *, int);
+@@ -49,6 +50,7 @@ struct elevator_ops
+ 	elevator_dispatch_fn *elevator_dispatch_fn;
+ 	elevator_add_req_fn *elevator_add_req_fn;
+ 	elevator_reinsert_req_fn *elevator_reinsert_req_fn;
++	elevator_is_urgent_fn *elevator_is_urgent_fn;
+ 
+ 	elevator_activate_req_fn *elevator_activate_req_fn;
+ 	elevator_deactivate_req_fn *elevator_deactivate_req_fn;
+-- 
+1.8.1.6
+

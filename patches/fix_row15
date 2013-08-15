@@ -1,0 +1,41 @@
+From 1d0efe98edb692ed0a8de389fb69ffd76ae8c701 Mon Sep 17 00:00:00 2001
+From: Tatyana Brokhman <tlinder@codeaurora.org>
+Date: Thu, 24 Jan 2013 16:17:27 +0200
+Subject: [PATCH] block: row: Update initial values of ROW data structures
+
+This patch sets the initial values of internal ROW
+parameters.
+
+Change-Id: I38132062a7fcbe2e58b9cc757e55caac64d013dc
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+[smuckle@codeaurora.org: ported from msm-3.7]
+Signed-off-by: Steve Muckle <smuckle@codeaurora.org>
+---
+ block/row-iosched.c | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/block/row-iosched.c b/block/row-iosched.c
+index 5c44b11..bdb6abd 100644
+--- a/block/row-iosched.c
++++ b/block/row-iosched.c
+@@ -649,6 +649,7 @@ static void *row_init_queue(struct request_queue *q)
+ 	if (!rdata)
+ 		return NULL;
+ 
++	memset(rdata, 0, sizeof(*rdata));
+ 	for (i = 0; i < ROWQ_MAX_PRIO; i++) {
+ 		INIT_LIST_HEAD(&rdata->row_queues[i].fifo);
+ 		rdata->row_queues[i].disp_quantum = row_queues_def[i].quantum;
+@@ -675,9 +676,6 @@ static void *row_init_queue(struct request_queue *q)
+ 	rdata->rd_idle_data.idling_queue_idx = ROWQ_MAX_PRIO;
+ 	rdata->dispatch_queue = q;
+ 
+-	rdata->nr_urgent_in_flight = 0;
+-	rdata->nr_reqs[READ] = rdata->nr_reqs[WRITE] = 0;
+-
+ 	return rdata;
+ }
+ 
+-- 
+1.8.1.6
+

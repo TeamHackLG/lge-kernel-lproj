@@ -1,0 +1,65 @@
+From 6c6bc8e021a0d51f4b29b8e9be158078d1bb106c Mon Sep 17 00:00:00 2001
+From: Tatyana Brokhman <tlinder@codeaurora.org>
+Date: Mon, 15 Oct 2012 20:50:54 +0200
+Subject: [PATCH] block: ROW: Correct minimum values of ROW tunable parameters
+
+The ROW scheduling algorithm exposes several tunable parameters.
+This patch updates the minimum allowed values for those parameters.
+
+Change-Id: I5ec19d54b694e2e83ad5376bd99cc91f084967f5
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+---
+ block/row-iosched.c | 30 ++++++++++++++----------------
+ 1 file changed, 14 insertions(+), 16 deletions(-)
+
+diff --git a/block/row-iosched.c b/block/row-iosched.c
+index f24437c..9f5f1db 100644
+--- a/block/row-iosched.c
++++ b/block/row-iosched.c
+@@ -603,29 +603,27 @@ static ssize_t __FUNC(struct elevator_queue *e,				\
+ 	return ret;							\
+ }
+ STORE_FUNCTION(row_hp_read_quantum_store,
+-		&rowd->row_queues[ROWQ_PRIO_HIGH_READ].disp_quantum, 0,
+-		INT_MAX, 0);
++&rowd->row_queues[ROWQ_PRIO_HIGH_READ].disp_quantum, 1, INT_MAX, 0);
+ STORE_FUNCTION(row_rp_read_quantum_store,
+-		&rowd->row_queues[ROWQ_PRIO_REG_READ].disp_quantum, 0,
+-		INT_MAX, 0);
++			&rowd->row_queues[ROWQ_PRIO_REG_READ].disp_quantum,
++			1, INT_MAX, 0);
+ STORE_FUNCTION(row_hp_swrite_quantum_store,
+-		&rowd->row_queues[ROWQ_PRIO_HIGH_SWRITE].disp_quantum, 0,
+-		INT_MAX, 0);
++			&rowd->row_queues[ROWQ_PRIO_HIGH_SWRITE].disp_quantum,
++			1, INT_MAX, 0);
+ STORE_FUNCTION(row_rp_swrite_quantum_store,
+-		&rowd->row_queues[ROWQ_PRIO_REG_SWRITE].disp_quantum, 0,
+-		INT_MAX, 0);
++			&rowd->row_queues[ROWQ_PRIO_REG_SWRITE].disp_quantum,
++			1, INT_MAX, 0);
+ STORE_FUNCTION(row_rp_write_quantum_store,
+-		&rowd->row_queues[ROWQ_PRIO_REG_WRITE].disp_quantum, 0,
+-		INT_MAX, 0);
++			&rowd->row_queues[ROWQ_PRIO_REG_WRITE].disp_quantum,
++			1, INT_MAX, 0);
+ STORE_FUNCTION(row_lp_read_quantum_store,
+-		&rowd->row_queues[ROWQ_PRIO_LOW_READ].disp_quantum, 0,
+-		INT_MAX, 0);
++			&rowd->row_queues[ROWQ_PRIO_LOW_READ].disp_quantum,
++			1, INT_MAX, 0);
+ STORE_FUNCTION(row_lp_swrite_quantum_store,
+-		&rowd->row_queues[ROWQ_PRIO_LOW_SWRITE].disp_quantum, 0,
+-		INT_MAX, 1);
++			&rowd->row_queues[ROWQ_PRIO_LOW_SWRITE].disp_quantum,
++			1, INT_MAX, 1);
+ STORE_FUNCTION(row_read_idle_store, &rowd->read_idle.idle_time, 1, INT_MAX, 1);
+-STORE_FUNCTION(row_read_idle_freq_store, &rowd->read_idle.freq,
+-				1, INT_MAX, 1);
++STORE_FUNCTION(row_read_idle_freq_store, &rowd->read_idle.freq, 1, INT_MAX, 1);
+ 
+ #undef STORE_FUNCTION
+ 
+-- 
+1.8.1.6
+

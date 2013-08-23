@@ -1,0 +1,44 @@
+From 8248c92315f59505df7f420148f55ab64a5d28f9 Mon Sep 17 00:00:00 2001
+From: Paul Reioux <reioux@gmail.com>
+Date: Thu, 20 Jun 2013 17:26:33 -0500
+Subject: [PATCH] KGSL: Simple Governor: fix minor logic issue
+
+Signed-off-by: Paul Reioux <reioux@gmail.com>
+---
+ drivers/gpu/msm/kgsl_pwrscale_trustzone.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/msm/kgsl_pwrscale_trustzone.c b/drivers/gpu/msm/kgsl_pwrscale_trustzone.c
+index 054916d..1aed562 100644
+--- a/drivers/gpu/msm/kgsl_pwrscale_trustzone.c
++++ b/drivers/gpu/msm/kgsl_pwrscale_trustzone.c
+@@ -147,12 +147,14 @@ static void tz_wake(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
+ #ifdef CONFIG_MSM_KGSL_SIMPLE_GOV
+ /* KGSL Simple GPU Governor */
+ /* Copyright (c) 2011-2013, Paul Reioux (Faux123). All rights reserved. */
+-static int laziness = 5;
+-module_param_named(simple_laziness, laziness, int, 0664);
++static int default_laziness = 5;
++module_param_named(simple_laziness, default_laziness, int, 0664);
+ 
+ static int ramp_up_threshold = 6000;
+ module_param_named(simple_ramp_threshold, ramp_up_threshold, int, 0664);
+ 
++static int laziness;
++
+ static int simple_governor(struct kgsl_device *device, int idle_stat)
+ {
+ 	int val = 0;
+@@ -175,7 +177,8 @@ static int simple_governor(struct kgsl_device *device, int idle_stat)
+ 				val = 0; /* don't change anything yet */
+ 			} else {
+ 				val = 1; /* above min, lower it */
+-				laziness = 5; /* reset laziness count */
++				/* reset laziness count */
++				laziness = default_laziness;
+ 			}
+ 		else if (pwr->active_pwrlevel == (pwr->num_pwrlevels - 1))
+ 			val = 0; /* already @ min, so do nothing */
+-- 
+1.8.1.6
+

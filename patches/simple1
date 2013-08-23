@@ -1,0 +1,99 @@
+From 1e42ede75bfcfccac40927b0d17bd6981ab87c99 Mon Sep 17 00:00:00 2001
+From: Paul Reioux <reioux@gmail.com>
+Date: Wed, 24 Jul 2013 19:41:32 -0500
+Subject: [PATCH] KGSL: Add a simple GPU governor for Adreno xxx GPU series
+
+initial coding for a Simple GPU governor based on my own work 2 years ago
+from Sensation GB kernel commit: c1ea8f64167270d67915b4d4fb00910b1c0f513f
+
+Signed-off-by: Paul Reioux <reioux@gmail.com>
+---
+ drivers/gpu/msm/Kconfig                   |  8 ++++++
+ drivers/gpu/msm/kgsl_pwrscale_trustzone.c | 45 ++++++++++++++++++++++++++++++-
+ 2 files changed, 52 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/msm/Kconfig b/drivers/gpu/msm/Kconfig
+index ba63fbc..96a935d 100644
+--- a/drivers/gpu/msm/Kconfig
++++ b/drivers/gpu/msm/Kconfig
+@@ -96,3 +96,11 @@ config MSM_KGSL_DISABLE_SHADOW_WRITES
+ 	bool "Disable register shadow writes for context switches"
+ 	default n
+ 	depends on MSM_KGSL
++
++config MSM_KGSL_SIMPLE_GOV
++	bool "Simple KGSL GPU govenor for Qualcomm Adreno xxx devices"
++	default n
++	depends on MSM_KGSL
++	---help---
++	  A simple KGSL GPU govenor for Qualcom Adreno XXX devices
++
+diff --git a/drivers/gpu/msm/kgsl_pwrscale_trustzone.c b/drivers/gpu/msm/kgsl_pwrscale_trustzone.c
+index aa6861e..081e7ef 100644
+--- a/drivers/gpu/msm/kgsl_pwrscale_trustzone.c
++++ b/drivers/gpu/msm/kgsl_pwrscale_trustzone.c
+@@ -124,6 +124,42 @@ static void tz_wake(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
+ 					device->pwrctrl.default_pwrlevel);
+ }
+ 
++#ifdef CONFIG_MSM_KGSL_SIMPLE_GOV
++/* KGSL Simple GPU Governor */
++/* Copyright (c) 2011-2013, Paul Reioux (Faux123). All rights reserved. */
++static int lazyness = 5;
++
++static int simple_governor(struct kgsl_device *device, int idle_stat)
++{
++	int val = 0;
++	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
++
++	/* it's currently busy */
++	if (idle_stat < 6000) {
++		if (pwr->active_pwrlevel == 0)
++			val = 0; /* already maxed, so do nothing */
++		else if ((pwr->active_pwrlevel > 0) &&
++			(pwr->active_pwrlevel <= (pwr->num_pwrlevels - 1)))
++			val = -1; /* bump up to next pwrlevel */
++	/* idle case */
++	} else {
++		if ((pwr->active_pwrlevel >= 0) &&
++			(pwr->active_pwrlevel < (pwr->num_pwrlevels - 1)))
++			if (lazyness > 0) {
++				/* hold off for a while */
++				lazyness--;
++				val = 0; /* don't change anything yet */
++			} else {
++				val = 1; /* above min, lower it */
++				lazyness = 5; /* reset lazyness count */
++			}
++		else if (pwr->active_pwrlevel == (pwr->num_pwrlevels - 1))
++			val = 0; /* already @ min, so do nothing */
++	}
++	return val;
++}
++#endif
++
+ static void tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
+ {
+ 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
+@@ -167,10 +203,17 @@ static void tz_idle(struct kgsl_device *device, struct kgsl_pwrscale *pwrscale)
+ 	priv->bin.total_time = 0;
+ 	priv->bin.busy_time = 0;
+ 	idle = (idle > 0) ? idle : 0;
++#ifdef CONFIG_MSM_KGSL_SIMPLE_GOV
++	val = simple_governor(device, idle);
++#else
+ 	val = __secure_tz_entry(TZ_UPDATE_ID, idle, device->id);
+-	if (val)
++#endif
++	if (val) {
+ 		kgsl_pwrctrl_pwrlevel_change(device,
+ 					     pwr->active_pwrlevel + val);
++		//pr_info("TZ idle stat: %d, TZ PL: %d, TZ out: %d\n",
++		//		idle, pwr->active_pwrlevel, val);
++	}
+ }
+ 
+ static void tz_busy(struct kgsl_device *device,
+-- 
+1.8.1.6
+

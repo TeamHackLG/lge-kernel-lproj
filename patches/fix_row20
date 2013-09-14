@@ -1,0 +1,49 @@
+From 803b185ace1586dbb3fef4935f45f437f6e74e0b Mon Sep 17 00:00:00 2001
+From: Tatyana Brokhman <tlinder@codeaurora.org>
+Date: Thu, 24 Jan 2013 14:01:25 +0200
+Subject: [PATCH] block: add REQ_URGENT to request flags
+
+This patch adds a new flag to be used in cmd_flags field of struct request
+for marking request as urgent.
+Urgent request is the one that should be given priority currently handled
+(regular) request by the device driver. The decision of a request urgency
+is taken by the scheduler.
+
+Change-Id: Ic20470987ef23410f1d0324f96f00578f7df8717
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+---
+ include/linux/blk_types.h | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/include/linux/blk_types.h b/include/linux/blk_types.h
+index 9c49d17..2b4542a 100644
+--- a/include/linux/blk_types.h
++++ b/include/linux/blk_types.h
+@@ -135,7 +135,7 @@ enum rq_flag_bits {
+ 				 * throttling rules. Don't do it again. */
+ 
+ 	/* request only flags */
+-	__REQ_SORTED,		/* elevator knows about this request */
++	__REQ_SORTED = __REQ_RAHEAD, /* elevator knows about this request */
+ 	__REQ_SOFTBARRIER,	/* may not be passed by ioscheduler */
+ 	__REQ_NOMERGE,		/* don't touch this for merging */
+ 	__REQ_STARTED,		/* drive already may have started this one */
+@@ -151,6 +151,7 @@ enum rq_flag_bits {
+ 	__REQ_IO_STAT,		/* account I/O stat */
+ 	__REQ_MIXED_MERGE,	/* merge of different types, fail separately */
+ 	__REQ_SANITIZE,		/* sanitize */
++	__REQ_URGENT,		/* urgent request */
+ 	__REQ_NR_BITS,		/* stops here */
+ };
+ 
+@@ -163,6 +164,7 @@ enum rq_flag_bits {
+ #define REQ_PRIO		(1 << __REQ_PRIO)
+ #define REQ_DISCARD		(1 << __REQ_DISCARD)
+ #define REQ_SANITIZE		(1 << __REQ_SANITIZE)
++#define REQ_URGENT		(1 << __REQ_URGENT)
+ #define REQ_NOIDLE		(1 << __REQ_NOIDLE)
+ 
+ #define REQ_FAILFAST_MASK \
+-- 
+1.8.1.6
+

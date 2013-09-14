@@ -1,0 +1,72 @@
+From a5cfb72845c3ff949db44593ff5ad97c65e183f9 Mon Sep 17 00:00:00 2001
+From: Tatyana Brokhman <tlinder@codeaurora.org>
+Date: Tue, 30 Oct 2012 08:33:06 +0200
+Subject: [PATCH] row: Adding support for reinsert already dispatched req
+
+Add support for reinserting already dispatched request back to the
+schedulers internal data structures.
+The request will be reinserted back to the queue (head) it was
+dispatched from as if it was never dispatched.
+
+Change-Id: I70954df300774409c25b5821465fb3aa33d8feb5
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+---
+ block/row-iosched.c | 35 ++++++++++++++++++++++++++++++++++-
+ 1 file changed, 34 insertions(+), 1 deletion(-)
+
+diff --git a/block/row-iosched.c b/block/row-iosched.c
+index b7965c6..583e75b 100644
+--- a/block/row-iosched.c
++++ b/block/row-iosched.c
+@@ -272,7 +272,39 @@ static void row_add_request(struct request_queue *q,
+ 	row_log_rowq(rd, rqueue->prio, "added request");
+ }
+ 
+-/*
++/**
++ * row_reinsert_req() - Reinsert request back to the scheduler
++ * @q:	requests queue
++ * @rq:	request to add
++ *
++ * Reinsert the given request back to the queue it was
++ * dispatched from as if it was never dispatched.
++ *
++ * Returns 0 on success, error code otherwise
++ */
++static int row_reinsert_req(struct request_queue *q,
++			    struct request *rq)
++{
++	struct row_data    *rd = q->elevator->elevator_data;
++	struct row_queue   *rqueue = RQ_ROWQ(rq);
++
++	/* Verify rqueue is legitimate */
++	if (rqueue->prio >= ROWQ_MAX_PRIO) {
++		pr_err("\n\nROW BUG: row_reinsert_req() rqueue->prio = %d\n",
++			   rqueue->prio);
++		blk_dump_rq_flags(rq, "");
++		return -EIO;
++	}
++
++	list_add(&rq->queuelist, &rqueue->fifo);
++	rd->nr_reqs[rq_data_dir(rq)]++;
++
++	row_log_rowq(rd, rqueue->prio, "request reinserted");
++
++	return 0;
++}
++
++/**
+  * row_remove_request() -  Remove given request from scheduler
+  * @q:	requests queue
+  * @rq:	request to remove
+@@ -656,6 +688,7 @@ static ssize_t __FUNC(struct elevator_queue *e,				\
+ 		.elevator_merge_req_fn		= row_merged_requests,
+ 		.elevator_dispatch_fn		= row_dispatch_requests,
+ 		.elevator_add_req_fn		= row_add_request,
++		.elevator_reinsert_req_fn	= row_reinsert_req,
+ 		.elevator_former_req_fn		= elv_rb_former_request,
+ 		.elevator_latter_req_fn		= elv_rb_latter_request,
+ 		.elevator_set_req_fn		= row_set_request,
+-- 
+1.8.1.6
+

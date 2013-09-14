@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 3.4.0 Kernel Configuration
+# Linux/arm 3.4.4 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -216,7 +216,7 @@ CONFIG_IOSCHED_TEST=m
 CONFIG_IOSCHED_CFQ=y
 CONFIG_DEFAULT_CFQ=y
 # CONFIG_DEFAULT_NOOP is not set
-CONFIG_DEFAULT_IOSCHED="cfq"
+CONFIG_DEFAULT_IOSCHED="row"
 # CONFIG_INLINE_SPIN_TRYLOCK is not set
 # CONFIG_INLINE_SPIN_TRYLOCK_BH is not set
 # CONFIG_INLINE_SPIN_LOCK is not set

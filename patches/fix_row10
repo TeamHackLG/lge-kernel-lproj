@@ -1,0 +1,40 @@
+From aa42b698d8a6aebecbff433b541307e3808cd31f Mon Sep 17 00:00:00 2001
+From: Tatyana Brokhman <tlinder@codeaurora.org>
+Date: Sat, 12 Jan 2013 16:21:47 +0200
+Subject: [PATCH] block: row: fix sysfs functions - idle_time conversion
+
+idle_time was updated to be stored in msec instead of jiffies.
+So there is no need to convert the value when reading from user or
+displaying the value to him.
+
+Change-Id: I58e074b204e90a90536d32199ac668112966e9cf
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+---
+ block/row-iosched.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/block/row-iosched.c b/block/row-iosched.c
+index bf9ad05..ca5ca6c 100644
+--- a/block/row-iosched.c
++++ b/block/row-iosched.c
+@@ -690,7 +690,7 @@ static ssize_t __FUNC(struct elevator_queue *e, char *page)		\
+ 	rowd->row_queues[ROWQ_PRIO_LOW_READ].disp_quantum, 0);
+ SHOW_FUNCTION(row_lp_swrite_quantum_show,
+ 	rowd->row_queues[ROWQ_PRIO_LOW_SWRITE].disp_quantum, 0);
+-SHOW_FUNCTION(row_read_idle_show, rowd->read_idle.idle_time, 1);
++SHOW_FUNCTION(row_read_idle_show, rowd->read_idle.idle_time, 0);
+ SHOW_FUNCTION(row_read_idle_freq_show, rowd->read_idle.freq, 0);
+ #undef SHOW_FUNCTION
+ 
+@@ -730,7 +730,7 @@ static ssize_t __FUNC(struct elevator_queue *e,				\
+ STORE_FUNCTION(row_lp_swrite_quantum_store,
+ 			&rowd->row_queues[ROWQ_PRIO_LOW_SWRITE].disp_quantum,
+ 			1, INT_MAX, 1);
+-STORE_FUNCTION(row_read_idle_store, &rowd->read_idle.idle_time, 1, INT_MAX, 1);
++STORE_FUNCTION(row_read_idle_store, &rowd->read_idle.idle_time, 1, INT_MAX, 0);
+ STORE_FUNCTION(row_read_idle_freq_store, &rowd->read_idle.freq, 1, INT_MAX, 0);
+ 
+ #undef STORE_FUNCTION
+-- 
+1.8.1.6
+

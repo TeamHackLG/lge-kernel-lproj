@@ -1,0 +1,174 @@
+From 437af6a8c0747c378782f07397e585d17d33cee5 Mon Sep 17 00:00:00 2001
+From: Tatyana Brokhman <tlinder@codeaurora.org>
+Date: Tue, 4 Dec 2012 15:54:43 +0200
+Subject: [PATCH] block: Add support for reinsert a dispatched req
+
+Add support for reinserting a dispatched request back to the
+scheduler's internal data structures.
+This capability is used by the device driver when it chooses to
+interrupt the current request transmission and execute another (more
+urgent) pending request. For example: interrupting long write in order
+to handle pending read. The device driver re-inserts the
+remaining write request back to the scheduler, to be rescheduled
+for transmission later on.
+
+Add API for verifying whether the current scheduler
+supports reinserting requests mechanism. If reinsert mechanism isn't
+supported by the scheduler, this code path will never be activated.
+
+Change-Id: I5c982a66b651ebf544aae60063ac8a340d79e67f
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+---
+ block/blk-core.c         | 44 ++++++++++++++++++++++++++++++++++++++++++++
+ block/elevator.c         | 35 +++++++++++++++++++++++++++++++++++
+ include/linux/blkdev.h   |  2 ++
+ include/linux/elevator.h |  5 +++++
+ 4 files changed, 86 insertions(+)
+
+diff --git a/block/blk-core.c b/block/blk-core.c
+index 3f9062f..db7a735 100644
+--- a/block/blk-core.c
++++ b/block/blk-core.c
+@@ -1070,6 +1070,50 @@ void blk_requeue_request(struct request_queue *q, struct request *rq)
+ }
+ EXPORT_SYMBOL(blk_requeue_request);
+ 
++/**
++ * blk_reinsert_request() - Insert a request back to the scheduler
++ * @q:		request queue
++ * @rq:		request to be inserted
++ *
++ * This function inserts the request back to the scheduler as if
++ * it was never dispatched.
++ *
++ * Return: 0 on success, error code on fail
++ */
++int blk_reinsert_request(struct request_queue *q, struct request *rq)
++{
++	if (unlikely(!rq) || unlikely(!q))
++		return -EIO;
++
++	blk_delete_timer(rq);
++	blk_clear_rq_complete(rq);
++	trace_block_rq_requeue(q, rq);
++
++	if (blk_rq_tagged(rq))
++		blk_queue_end_tag(q, rq);
++
++	BUG_ON(blk_queued_rq(rq));
++
++	return elv_reinsert_request(q, rq);
++}
++EXPORT_SYMBOL(blk_reinsert_request);
++
++/**
++ * blk_reinsert_req_sup() - check whether the scheduler supports
++ *          reinsertion of requests
++ * @q:		request queue
++ *
++ * Returns true if the current scheduler supports reinserting
++ * request. False otherwise
++ */
++bool blk_reinsert_req_sup(struct request_queue *q)
++{
++	if (unlikely(!q))
++		return false;
++	return q->elevator->type->ops.elevator_reinsert_req_fn ? true : false;
++}
++EXPORT_SYMBOL(blk_reinsert_req_sup);
++
+ static void add_acct_request(struct request_queue *q, struct request *rq,
+ 			     int where)
+ {
+diff --git a/block/elevator.c b/block/elevator.c
+index 74fd51b..737d5dd 100644
+--- a/block/elevator.c
++++ b/block/elevator.c
+@@ -585,6 +585,41 @@ void elv_requeue_request(struct request_queue *q, struct request *rq)
+ 	__elv_add_request(q, rq, ELEVATOR_INSERT_REQUEUE);
+ }
+ 
++/**
++ * elv_reinsert_request() - Insert a request back to the scheduler
++ * @q:		request queue where request should be inserted
++ * @rq:		request to be inserted
++ *
++ * This function returns the request back to the scheduler to be
++ * inserted as if it was never dispatched
++ *
++ * Return: 0 on success, error code on failure
++ */
++int elv_reinsert_request(struct request_queue *q, struct request *rq)
++{
++	int res;
++
++	if (!q->elevator->type->ops.elevator_reinsert_req_fn)
++		return -EPERM;
++
++	res = q->elevator->type->ops.elevator_reinsert_req_fn(q, rq);
++	if (!res) {
++		/*
++		 * it already went through dequeue, we need to decrement the
++		 * in_flight count again
++		 */
++		if (blk_account_rq(rq)) {
++			q->in_flight[rq_is_sync(rq)]--;
++			if (rq->cmd_flags & REQ_SORTED)
++				elv_deactivate_rq(q, rq);
++		}
++		rq->cmd_flags &= ~REQ_STARTED;
++		q->nr_sorted++;
++	}
++
++	return res;
++}
++
+ void elv_drain_elevator(struct request_queue *q)
+ {
+ 	static int printed;
+diff --git a/include/linux/blkdev.h b/include/linux/blkdev.h
+index a19d374..a7875ec 100644
+--- a/include/linux/blkdev.h
++++ b/include/linux/blkdev.h
+@@ -673,6 +673,8 @@ static inline void rq_flush_dcache_pages(struct request *rq)
+ extern struct request *blk_make_request(struct request_queue *, struct bio *,
+ 					gfp_t);
+ extern void blk_requeue_request(struct request_queue *, struct request *);
++extern int blk_reinsert_request(struct request_queue *q, struct request *rq);
++extern bool blk_reinsert_req_sup(struct request_queue *q);
+ extern void blk_add_request_payload(struct request *rq, struct page *page,
+ 		unsigned int len);
+ extern int blk_rq_check_limits(struct request_queue *q, struct request *rq);
+diff --git a/include/linux/elevator.h b/include/linux/elevator.h
+index 7d4e035..c07b63b 100644
+--- a/include/linux/elevator.h
++++ b/include/linux/elevator.h
+@@ -22,6 +22,8 @@ typedef void (elevator_bio_merged_fn) (struct request_queue *,
+ typedef int (elevator_dispatch_fn) (struct request_queue *, int);
+ 
+ typedef void (elevator_add_req_fn) (struct request_queue *, struct request *);
++typedef int (elevator_reinsert_req_fn) (struct request_queue *,
++					struct request *);
+ typedef struct request *(elevator_request_list_fn) (struct request_queue *, struct request *);
+ typedef void (elevator_completed_req_fn) (struct request_queue *, struct request *);
+ typedef int (elevator_may_queue_fn) (struct request_queue *, int);
+@@ -46,6 +48,8 @@ struct elevator_ops
+ 
+ 	elevator_dispatch_fn *elevator_dispatch_fn;
+ 	elevator_add_req_fn *elevator_add_req_fn;
++	elevator_reinsert_req_fn *elevator_reinsert_req_fn;
++
+ 	elevator_activate_req_fn *elevator_activate_req_fn;
+ 	elevator_deactivate_req_fn *elevator_deactivate_req_fn;
+ 
+@@ -122,6 +126,7 @@ extern void elv_merge_requests(struct request_queue *, struct request *,
+ extern void elv_bio_merged(struct request_queue *q, struct request *,
+ 				struct bio *);
+ extern void elv_requeue_request(struct request_queue *, struct request *);
++extern int elv_reinsert_request(struct request_queue *, struct request *);
+ extern struct request *elv_former_request(struct request_queue *, struct request *);
+ extern struct request *elv_latter_request(struct request_queue *, struct request *);
+ extern int elv_register_queue(struct request_queue *q);
+-- 
+1.8.1.6
+

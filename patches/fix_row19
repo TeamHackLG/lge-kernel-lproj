@@ -1,0 +1,35 @@
+From 0976a4214533fe9a23d54dca23f1d8a97d764061 Mon Sep 17 00:00:00 2001
+From: Maya Erez <merez@codeaurora.org>
+Date: Sun, 14 Apr 2013 15:19:52 +0300
+Subject: [PATCH] block: row: Fix starvation tolerance values
+
+The current starvation tolerance values increase the boot time
+since high priority SW requests are delayed by regular priority requests.
+In order to overcome this, increase the starvation tolerance values.
+
+Change-Id: I9947fca9927cbd39a1d41d4bd87069df679d3103
+Signed-off-by: Tatyana Brokhman <tlinder@codeaurora.org>
+Signed-off-by: Maya Erez <merez@codeaurora.org>
+---
+ block/row-iosched.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/block/row-iosched.c b/block/row-iosched.c
+index c8ba344..e71f6af 100644
+--- a/block/row-iosched.c
++++ b/block/row-iosched.c
+@@ -200,9 +200,9 @@ struct row_data {
+ 	struct request			*pending_urgent_rq;
+ 	int				last_served_ioprio_class;
+ 
+-#define	ROW_REG_STARVATION_TOLLERANCE	50
++#define	ROW_REG_STARVATION_TOLLERANCE	5000
+ 	struct starvation_data		reg_prio_starvation;
+-#define	ROW_LOW_STARVATION_TOLLERANCE	1000
++#define	ROW_LOW_STARVATION_TOLLERANCE	10000
+ 	struct starvation_data		low_prio_starvation;
+ 
+ 	unsigned int			cycle_flags;
+-- 
+1.8.1.6
+

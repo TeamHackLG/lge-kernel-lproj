@@ -84,6 +84,9 @@ enum {
 	AS3647_LED_INIT,
 	AS3647_LED_RELEASE,
 	/* LGE_CHANGE_E : 2012-11-14 hyungtae.lee@lge.com flash off when camera is off by back key */
+	/* LGE_CHANGE_S : distinguish torch and pre-flashing 2014-03-26 sungmin.cho@lge.com */
+	AS3647_LED_TORCH,
+    /* LGE_CHANGE_E : distinguish torch and pre-flashing 2014-03-26 sungmin.cho@lge.com */
 	AS3647_LED_MAX
 };
 
@@ -261,10 +264,18 @@ int as3647_flash_set_led_state(int state)
 /*LGE_CHANGE_S : as3647 flash reg setting
   2011-12-20, suk.kitak@lge.com, 
   adjust light intensity and timing   */
-	case AS3647_LED_LOW:
-            as364x_set_leds(as3647_data, 1,0x0d,0x3F);	//0xb0
-		printk("[JEONGHOON]as3647_flash_set_led_state -> torch mode\n");
-		break;
+/* LGE_CHANGE_S : distinguish torch and pre-flashing 2014-03-26 sungmin.cho@lge.com */
+	case AS3647_LED_LOW: // assist mode
+        as364x_set_leds(as3647_data, 1,0x0a,0x60);	// 600mA
+        printk("[JEONGHOON]as3647_flash_set_led_state -> pre-flash mode\n");
+        break;
+
+    case AS3647_LED_TORCH:
+        as364x_set_leds(as3647_data, 1,0x0d,0x3F);	//393.3mA
+        printk("[JEONGHOON]as3647_flash_set_led_state -> torch mode\n");
+        break;
+/* LGE_CHANGE_E : distinguish torch and pre-flashing 2014-03-26 sungmin.cho@lge.com */
+
 	case AS3647_LED_HIGH:
 	      as364x_set_leds(as3647_data, 1,0x0b,0x80);	//0x9c
 		printk("[JEONGHOON]as3647_flash_set_led_state -> Strobe on \n");

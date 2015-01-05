@@ -5,7 +5,6 @@
 
 #include <lg_fw_diag_communication.h>
 #include <lg_diag_testmode.h>
-#include <mach/qdsp5v2/audio_def.h>
 #include <linux/delay.h>
 
 #ifndef SKW_TEST

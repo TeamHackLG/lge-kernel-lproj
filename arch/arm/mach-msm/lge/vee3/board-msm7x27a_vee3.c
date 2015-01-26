@@ -839,8 +839,6 @@ static struct memtype_reserve msm7x27a_reserve_table[] __initdata = {
 	},
 };
 
-
-
 static void __init size_ion_devices(void)
 {
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -890,7 +888,7 @@ static void __init msm7x27a_reserve(void)
 			&ion_cma_device.dev,
 			msm_ion_camera_size,
 			CAMERA_HEAP_BASE,
-			0xa0000000);
+			0x30000000);
 #endif
 }
 

@@ -15,11 +15,6 @@
 #include <linux/memblock.h>
 #include <asm/mach-types.h>
 #include <linux/memblock.h>
-// LGE TestMode interface porting, myunghwan.kim@lge.com [START]
-#ifdef CONFIG_LGE_DIAGTEST
-#include <../../../lge/include/lg_fw_diag_communication.h>
-#endif 
-// LGE TestMode interface porting, myunghwan.kim@lge.com [END]
 #include <asm/mach/arch.h>
 #include <asm/hardware/gic.h>
 #include <mach/board.h>
@@ -390,30 +385,6 @@ static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
 };
 #endif
 
-// LGE TestMode interface porting, myunghwan.kim@lge.com [START]
-#ifdef CONFIG_LGE_DIAGTEST
-static struct diagcmd_platform_data lg_fw_diagcmd_pdata = {
-	.name = "lg_fw_diagcmd",
-};
-
-static struct platform_device lg_fw_diagcmd_device = {
-	.name = "lg_fw_diagcmd",
-	.id = -1,
-	.dev = {
-		.platform_data = &lg_fw_diagcmd_pdata
-	},
-};
-
-static struct platform_device lg_diag_cmd_device = {
-	.name = "lg_diag_cmd",
-	.id = -1,
-	.dev = {
-		.platform_data = 0, //&lg_diag_cmd_pdata
-	},
-};
-#endif
-// LGE TestMode interface porting, myunghwan.kim@lge.com [END]
-
 static struct msm_pm_platform_data msm7x27a_pm_data[MSM_PM_SLEEP_MODE_NR] = {
 	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
 					.idle_supported = 1,
@@ -679,12 +650,6 @@ static struct platform_device *common_devices[] __initdata = {
 #ifdef CONFIG_ION_MSM
 	&ion_dev,
 #endif
-// LGE TestMode interface porting, myunghwan.kim@lge.com [START]
-#ifdef CONFIG_LGE_DIAGTEST
-	&lg_fw_diagcmd_device,	
-	&lg_diag_cmd_device,
-#endif 
-// LGE TestMode interface porting, myunghwan.kim@lge.com [END]
 };
 
 static struct platform_device *msm8625_surf_devices[] __initdata = {

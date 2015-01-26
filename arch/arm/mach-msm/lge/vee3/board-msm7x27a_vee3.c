@@ -89,12 +89,9 @@
 #ifdef CONFIG_LGE_BOOT_MODE
 #include <mach/lge/lge_boot_mode.h>
 #endif
-/*LGE_CHANGE_S[jyothishre.nk@lge.com]20121102:
- *Migrating QCT patch to remove pmem and fmem support*/
 #define RESERVE_KERNEL_EBI1_SIZE	0x3A000
 #define MSM_RESERVE_AUDIO_SIZE	0xF0000
 #define BOOTLOADER_BASE_ADDR	0x10000
-/*LGE_CHANGE_E[jyothishre.nk@lge.com]20121102*/
 /*LGE_CHANGE_S[jyothishre.nk@lge.com]20121009: ram_console support*/
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 #define MSM7X27_EBI1_CS0_SIZE	0xFD00000
@@ -492,8 +489,6 @@ static struct msm_pm_boot_platform_data msm_pm_8625_boot_pdata __initdata = {
 };
 
 
-/*LGE_CHANGE_S[jyothishre.nk@lge.com]20121102:
- *Migrating QCT patch to remove pmem and fmem support*/
 static unsigned reserve_mdp_size = MSM_RESERVE_MDP_SIZE;
 static int __init reserve_mdp_size_setup(char *p)
 {
@@ -511,7 +506,6 @@ static int __init reserve_adsp_size_setup(char *p)
 }
 
 early_param("reserve_adsp_size", reserve_adsp_size_setup);
-/*LGE_CHANGE_E[jyothishre.nk@lge.com]20121102*/
 
 static u32 msm_calculate_batt_capacity(u32 current_voltage);
 
@@ -665,8 +659,6 @@ static struct platform_device *msm8625_surf_devices[] __initdata = {
 	&msm8625_kgsl_3d0,
 };
 
-/*LGE_CHANGE_S[jyothishre.nk@lge.com]20121102:
- *Migrating QCT patch to remove pmem and fmem support*/
 static unsigned reserve_kernel_ebi1_size = RESERVE_KERNEL_EBI1_SIZE;
 static int __init reserve_kernel_ebi1_size_setup(char *p)
 {
@@ -709,7 +701,6 @@ static void fix_sizes(void)
 #endif
 #endif
 }
-/*LGE_CHANGE_E[jyothishre.nk@lge.com]20121102*/
 #ifdef CONFIG_ION_MSM
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 static struct ion_co_heap_pdata co_ion_pdata = {

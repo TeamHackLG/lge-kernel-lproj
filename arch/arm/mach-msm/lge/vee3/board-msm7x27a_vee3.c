@@ -734,7 +734,9 @@ static void fix_sizes(void)
 	msm_ion_audio_size = MSM_RESERVE_AUDIO_SIZE;
 	msm_ion_sf_size = reserve_mdp_size;
 #ifdef CONFIG_CMA
-	msm_ion_camera_size = CAMERA_ZSL_SIZE;
+	if (get_ddr_size() > SZ_256M)
+		reserve_adsp_size = CAMERA_ZSL_SIZE;
+	msm_ion_camera_size = reserve_adsp_size;
 	msm_ion_camera_size_carving = 0;
 #else
 	msm_ion_camera_size = reserve_adsp_size;

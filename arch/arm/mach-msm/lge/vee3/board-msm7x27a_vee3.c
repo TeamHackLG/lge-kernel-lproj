@@ -220,17 +220,15 @@ static struct msm_i2c_platform_data msm_gsbi1_qup_i2c_pdata = {
 	.msm_i2c_config_gpio	= gsbi_qup_i2c_gpio_config,
 };
 
-#ifdef CONFIG_ARCH_MSM7X27A/* 20121008 Yoonsoo-Kim[yoonsoo.kim@lge.com] [V3]  V3 GPU Composition method    [START]*/
-/*LGE_CHANGE_S[jyothishre.nk@lge.com]20121102:
- *Migrating QCT patch to remove pmem and fmem support*/
-#define MSM_RESERVE_MDP_SIZE     	0x7A0000  /*QCT Original Value : 0x2300000[35MB] -> 0x5A0000[5.62MB] -> 0x7A0000 [7.625MB] */
-#define MSM7x25A_MSM_RESERVE_MDP_SIZE       0x1500000
+#ifdef CONFIG_ARCH_MSM7X27A
 
-#define MSM_RESERVE_ADSP_SIZE      0x1000000	/* 20121025 Yoonsoo-Kim[yoonsoo.kim@lge.com] [V3] QVGA Customization 0x1200000[18MB] -> 0xD00000[13MB] -> 0x1000000[16MB] */
-#define MSM7x25A_MSM_RESERVE_ADSP_SIZE      0xB91000
-/*LGE_CHANGE_E[jyothishre.nk@lge.com]20121102*/
-#define CAMERA_ZSL_SIZE		(SZ_1M * 60)
-#endif/* 20121008 Yoonsoo-Kim[yoonsoo.kim@lge.com] [V3]   V3 GPU Composition method   [END]*/
+#define MSM_RESERVE_MDP_SIZE		0x800000
+#define MSM7x25A_MSM_RESERVE_MDP_SIZE	0x1500000
+
+#define MSM_RESERVE_ADSP_SIZE		0x1200000
+#define MSM7x25A_MSM_RESERVE_ADSP_SIZE	0xB91000
+#define CAMERA_ZSL_SIZE			(SZ_1M * 60)
+#endif
 
 #ifdef CONFIG_ION_MSM
 #define MSM_ION_HEAP_NUM        4

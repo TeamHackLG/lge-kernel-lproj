@@ -1481,20 +1481,6 @@ static struct platform_device tricolor_leds_pdev = {
 };
 #endif
 
-/* 2012-10-16 JongWook-Park(blood9874@lge.com) [V3] DIAG Touch Key patch [START] */
-#ifdef CONFIG_LGE_DIAGTEST
-static struct platform_device lg_diag_input_device = {
-	.name = "ats_input",
-	.id = -1,
-	.dev = { .platform_data = 0, },
-};
-
-static struct platform_device *v3_ats_input_devices[] __initdata = {
-       &lg_diag_input_device,
-};
-#endif
-/* 2012-10-16 JongWook-Park(blood9874@lge.com) [V3] DIAG Touch Key patch [END] */
-
 void __init msm7627a_add_io_devices(void)
 {
 
@@ -1521,12 +1507,6 @@ void __init msm7627a_add_io_devices(void)
 				ARRAY_SIZE(atmel_ts_i2c_info));
 #endif
 /*LGE_CHANGE_E : seven.kim@lge.com for v3 mms128 touch*/
-
-/* 2012-10-16 JongWook-Park(blood9874@lge.com) [V3] DIAG Touch Key patch [START] */
-#ifdef CONFIG_LGE_DIAGTEST
-	platform_add_devices(v3_ats_input_devices, ARRAY_SIZE(v3_ats_input_devices));
-#endif
-/* 2012-10-16 JongWook-Park(blood9874@lge.com) [V3] DIAG Touch Key patch [END] */
 
 #if defined (CONFIG_SENSORS_BMM050) ||defined(CONFIG_SENSORS_BMA250)
 #if defined (CONFIG_MACH_MSM7X25A_V3)

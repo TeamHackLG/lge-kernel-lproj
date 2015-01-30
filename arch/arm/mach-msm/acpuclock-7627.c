@@ -232,7 +232,7 @@ static struct clkctl_acpu_speed pll0_960_pll1_196_pll2_1200_pll4_800[] = {
 	{ 0 }
 };
 
-/* 7627aa PLL4 @ 1008MHz with GSM capable modem */
+/* 7627aa PLL4 @ 1008MHz(W/ OC to 1.3GHz) with GSM capable modem */
 static struct clkctl_acpu_speed pll0_960_pll1_245_pll2_1200_pll4_1008[] = {
 	{ 0, 19200, ACPU_PLL_TCXO, 0, 0, 2400, 3, 0, 30720 },
 	{ 0, 61440, ACPU_PLL_1, 1, 3,  7680, 3, 1, 61440 },
@@ -244,10 +244,19 @@ static struct clkctl_acpu_speed pll0_960_pll1_245_pll2_1200_pll4_1008[] = {
 	{ 0, 504000, ACPU_PLL_4, 6, 1, 63000, 3, 6, 160000 },
 	{ 1, 600000, ACPU_PLL_2, 2, 1, 75000, 3, 6, 160000 },
 	{ 1, 1008000, ACPU_PLL_4, 6, 0, 126000, 3, 7, 200000},
+#ifdef CONFIG_MSM7X27A_OVERCLOCK
+	{ 1, 1056000, ACPU_PLL_4, 6, 0, 132000, 3, 7, 200000 },
+	{ 1, 1113600, ACPU_PLL_4, 6, 0, 139200, 3, 7, 200000 },
+	{ 1, 1152000, ACPU_PLL_4, 6, 0, 144000, 3, 7, 200000 },
+	{ 1, 1190400, ACPU_PLL_4, 6, 0, 148800, 3, 7, 200000 },
+	{ 1, 1228800, ACPU_PLL_4, 6, 0, 153600, 3, 7, 200000 },
+	{ 1, 1267200, ACPU_PLL_4, 6, 0, 158400, 3, 7, 200000 },
+	{ 1, 1300000, ACPU_PLL_4, 6, 0, 162500, 3, 7, 200000 },
+#endif
 	{ 0 }
 };
 
-/* 7627aa PLL4 @ 1008MHz with CDMA capable modem */
+/* 7627aa PLL4 @ 1008MHz(W/ OC to 1.3GHz) with CDMA capable modem */
 static struct clkctl_acpu_speed pll0_960_pll1_196_pll2_1200_pll4_1008[] = {
 	{ 0, 19200, ACPU_PLL_TCXO, 0, 0, 2400, 3, 0, 24576 },
 	{ 0, 65536, ACPU_PLL_1, 1, 3,  8192, 3, 1, 49152 },
@@ -259,6 +268,15 @@ static struct clkctl_acpu_speed pll0_960_pll1_196_pll2_1200_pll4_1008[] = {
 	{ 0, 504000, ACPU_PLL_4, 6, 1, 63000, 3, 6, 160000 },
 	{ 1, 600000, ACPU_PLL_2, 2, 1, 75000, 3, 6, 160000 },
 	{ 1, 1008000, ACPU_PLL_4, 6, 0, 126000, 3, 7, 200000},
+#ifdef CONFIG_MSM7X27A_OVERCLOCK
+	{ 1, 1056000, ACPU_PLL_4, 6, 0, 132000, 3, 7, 200000 },
+	{ 1, 1113600, ACPU_PLL_4, 6, 0, 139200, 3, 7, 200000 },
+	{ 1, 1152000, ACPU_PLL_4, 6, 0, 144000, 3, 7, 200000 },
+	{ 1, 1190400, ACPU_PLL_4, 6, 0, 148800, 3, 7, 200000 },
+	{ 1, 1228800, ACPU_PLL_4, 6, 0, 153600, 3, 7, 200000 },
+	{ 1, 1267200, ACPU_PLL_4, 6, 0, 158400, 3, 7, 200000 },
+	{ 1, 1300000, ACPU_PLL_4, 6, 0, 162500, 3, 7, 200000 },
+#endif
 	{ 0 }
 };
 
@@ -451,7 +469,7 @@ static struct clkctl_acpu_speed pll0_960_pll1_589_pll2_1200_pll4_800[] = {
 	{ 0 }
 };
 
-/* 7627aa PLL4 @ 1008MHz with GSM capable modem */
+/* 7627aa PLL4 @ 1008MHz(W/ OC to 1.3GHz) with GSM capable modem */
 static struct clkctl_acpu_speed pll0_960_pll1_737_pll2_1200_pll4_1008[] = {
 	{ 0, 19200, ACPU_PLL_TCXO, 0, 0, 2400, 3, 0, 30720 },
 	{ 0, 61440, ACPU_PLL_1, 1, 11,  7680, 3, 1, 61440 },
@@ -463,10 +481,19 @@ static struct clkctl_acpu_speed pll0_960_pll1_737_pll2_1200_pll4_1008[] = {
 	{ 0, 504000, ACPU_PLL_4, 6, 1, 63000, 3, 6, 160000 },
 	{ 1, 600000, ACPU_PLL_2, 2, 1, 75000, 3, 6, 160000 },
 	{ 1, 1008000, ACPU_PLL_4, 6, 0, 126000, 3, 7, 200000},
+#ifdef CONFIG_MSM7X27A_OVERCLOCK
+	{ 1, 1056000, ACPU_PLL_4, 6, 0, 132000, 3, 7, 200000 },
+	{ 1, 1113600, ACPU_PLL_4, 6, 0, 139200, 3, 7, 200000 },
+	{ 1, 1152000, ACPU_PLL_4, 6, 0, 144000, 3, 7, 200000 },
+	{ 1, 1190400, ACPU_PLL_4, 6, 0, 148800, 3, 7, 200000 },
+	{ 1, 1228800, ACPU_PLL_4, 6, 0, 153600, 3, 7, 200000 },
+	{ 1, 1267200, ACPU_PLL_4, 6, 0, 158400, 3, 7, 200000 },
+	{ 1, 1300000, ACPU_PLL_4, 6, 0, 162500, 3, 7, 200000 },
+#endif
 	{ 0 }
 };
 
-/* 7627aa PLL4 @ 1008MHz with CDMA capable modem */
+/* 7627aa PLL4 @ 1008MHz(W/ OC to 1.3 GHz) with CDMA capable modem */
 static struct clkctl_acpu_speed pll0_960_pll1_589_pll2_1200_pll4_1008[] = {
 	{ 0, 19200, ACPU_PLL_TCXO, 0, 0, 2400, 3, 0, 24576 },
 	{ 0, 65536, ACPU_PLL_1, 1, 8,  8192, 3, 1, 49152 },
@@ -478,6 +505,15 @@ static struct clkctl_acpu_speed pll0_960_pll1_589_pll2_1200_pll4_1008[] = {
 	{ 0, 504000, ACPU_PLL_4, 6, 1, 63000, 3, 6, 160000 },
 	{ 1, 600000, ACPU_PLL_2, 2, 1, 75000, 3, 6, 160000 },
 	{ 1, 1008000, ACPU_PLL_4, 6, 0, 126000, 3, 7, 200000},
+#ifdef CONFIG_MSM7X27A_OVERCLOCK
+	{ 1, 1056000, ACPU_PLL_4, 6, 0, 132000, 3, 7, 200000 },
+	{ 1, 1113600, ACPU_PLL_4, 6, 0, 139200, 3, 7, 200000 },
+	{ 1, 1152000, ACPU_PLL_4, 6, 0, 144000, 3, 7, 200000 },
+	{ 1, 1190400, ACPU_PLL_4, 6, 0, 148800, 3, 7, 200000 },
+	{ 1, 1228800, ACPU_PLL_4, 6, 0, 153600, 3, 7, 200000 },
+	{ 1, 1267200, ACPU_PLL_4, 6, 0, 158400, 3, 7, 200000 },
+	{ 1, 1300000, ACPU_PLL_4, 6, 0, 162500, 3, 7, 200000 },
+#endif
 	{ 0 }
 };
 

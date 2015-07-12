@@ -85,10 +85,10 @@ static struct platform_device msm_fb_device = {
 
 #ifdef CONFIG_MSM_V4L2_VIDEO_OVERLAY_DEVICE
 static struct platform_device msm_v4l2_video_overlay_device = {
-		.name   = "msm_v4l2_overlay_pd",
-		.id     = 0,
-		.num_resources  = ARRAY_SIZE(msm_v4l2_video_overlay_resources),
-		.resource       = msm_v4l2_video_overlay_resources,
+		.name	= "msm_v4l2_overlay_pd",
+		.id	= 0,
+		.num_resources	= ARRAY_SIZE(msm_v4l2_video_overlay_resources),
+		.resource	= msm_v4l2_video_overlay_resources,
 	};
 #endif
 
@@ -332,8 +332,7 @@ static struct notifier_block v1_fb_event_notifier = {
 
 void __init msm_fb_add_devices(void)
 {
-
-	if (ebi2_tovis_panel_data.initialized)
+	if(ebi2_tovis_panel_data.initialized)
 		ebi2_tovis_power_save(1);
 
 	fb_register_client(&v1_fb_event_notifier);

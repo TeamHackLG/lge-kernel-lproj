@@ -43,16 +43,22 @@ extern int bu61800_ldo_enable(struct device *dev, unsigned num, unsigned enable)
 #endif
 #endif
 
-extern int lge_rt8966a_ldo_control( int ldo_id, int onoff );
 
-#define GPIO_SKU1_CAM_VGA_SHDN    18
-#define GPIO_SKU1_CAM_VGA_RESET_N 29
-#define GPIO_SKU3_CAM_5MP_SHDN_N   5         /* PWDN */
-#define GPIO_SKU3_CAM_5MP_CAMIF_RESET   6    /* (board_is(EVT))?123:121 RESET */
-#define GPIO_SKU3_CAM_5MP_CAM_DRIVER_PWDN 30
-#define GPIO_SKU7_CAM_VGA_SHDN    91
-#define GPIO_SKU7_CAM_5MP_SHDN_N   93         /* PWDN */
-#define GPIO_SKU7_CAM_5MP_CAMIF_RESET   23   /* (board_is(EVT))?123:121 RESET */
+
+#ifndef CONFIG_MINIABB_REGULATOR
+#ifdef CONFIG_MACH_MSM7X25A_V1
+extern int lge_rt8966a_ldo_control( int ldo_id, int onoff );
+#endif
+#endif
+
+#define GPIO_SKU1_CAM_VGA_SHDN			18
+#define GPIO_SKU1_CAM_VGA_RESET_N		29
+#define GPIO_SKU3_CAM_5MP_SHDN_N		5
+#define GPIO_SKU3_CAM_5MP_CAMIF_RESET		6
+#define GPIO_SKU3_CAM_5MP_CAM_DRIVER_PWDN	30
+#define GPIO_SKU7_CAM_VGA_SHDN			91
+#define GPIO_SKU7_CAM_5MP_SHDN_N		93
+#define GPIO_SKU7_CAM_5MP_CAMIF_RESET		23
 
 #ifdef CONFIG_MSM_CAMERA_V4L2
 static struct camera_vreg_t msm_cam_vreg[] = {
@@ -60,12 +66,12 @@ static struct camera_vreg_t msm_cam_vreg[] = {
 
 #ifdef CONFIG_T4K28
 static uint32_t t4k28_cam_off_gpio_table[] = {
-	GPIO_CFG(15, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), // mclk
+	GPIO_CFG(15, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
 	GPIO_CFG(42, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 };
 
 static uint32_t t4k28_cam_on_gpio_table[] = {
-	GPIO_CFG(15, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), // mclk
+	GPIO_CFG(15, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
 	GPIO_CFG(42, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
 };
 
@@ -87,6 +93,7 @@ static struct msm_camera_gpio_conf gpio_conf_t4k28 = {
 	.gpio_no_mux = 1,
 };
 
+#ifdef CONFIG_MINIABB_REGULATOR
 static struct regulator *regulator_cam_iovdd;
 static struct regulator *regulator_cam_avdd;
 static struct regulator *regulator_cam_dvdd;
@@ -99,7 +106,6 @@ static int msm_camera_vreg_config(int vreg_en)
 	pr_info("### %s: vreg_en=%d ###\n", __func__, vreg_en);
 
 	if( vreg_en ) {
-		/* CAM_AVDD */
 		if( regulator_cam_avdd != NULL ) {
 			is_on = regulator_is_enabled(regulator_cam_avdd);
 			if( vreg_en != is_on ) {
@@ -109,7 +115,6 @@ static int msm_camera_vreg_config(int vreg_en)
 			}
 		}
 
-		/* CAM_IOVDD */
 		if( regulator_cam_iovdd != NULL ) {
 			is_on = regulator_is_enabled(regulator_cam_iovdd);
 			if( vreg_en != is_on ) {
@@ -119,7 +124,6 @@ static int msm_camera_vreg_config(int vreg_en)
 			}
 		}
 
-		/* CAM_DVDD */
 		if( regulator_cam_avdd != NULL ) {
 			is_on = regulator_is_enabled(regulator_cam_dvdd);
 			if( vreg_en != is_on ) {
@@ -130,7 +134,6 @@ static int msm_camera_vreg_config(int vreg_en)
 		}
 	}
 	else {
-		/* CAM_DVDD */
 		if( regulator_cam_dvdd != NULL ) {
 			is_on = regulator_is_enabled(regulator_cam_dvdd);
 			if( vreg_en != is_on ) {
@@ -140,7 +143,6 @@ static int msm_camera_vreg_config(int vreg_en)
 			}
 		}
 
-		/* CAM_IOVDD */
 		if( regulator_cam_iovdd != NULL ) {
 			is_on = regulator_is_enabled(regulator_cam_iovdd);
 			if( vreg_en != is_on ) {
@@ -149,7 +151,7 @@ static int msm_camera_vreg_config(int vreg_en)
 					pr_err("### %s: could not %sable cam_iovdd regulators: %d ###\n", __func__, vreg_en ? "en" : "dis", rc);
 			}
 		}
-			/* CAM_AVDD */
+
 		if( regulator_cam_avdd != NULL ) {
 			is_on = regulator_is_enabled(regulator_cam_avdd);
 			if( vreg_en != is_on ) {
@@ -162,7 +164,136 @@ static int msm_camera_vreg_config(int vreg_en)
 
 	return rc;
 }
+#else
+static int msm_camera_vreg_config(int vreg_en)
+{
+	int rc = 0;
 
+#ifdef CONFIG_MACH_MSM7X25A_V1
+	if( vreg_en ) {
+		pr_info("%s: msm_camera_vreg_config power on.\n", __func__);
+
+		rc = lge_rt8966a_ldo_control( 4, vreg_en );
+		if( rc != 0 )
+			pr_err("%s: CAM_IOVDD on failed.\n", __func__);
+
+		rc = lge_rt8966a_ldo_control( 2, vreg_en );
+		if( rc != 0 )
+			pr_err("%s: CAM_AVDD on failed.\n", __func__);
+
+		rc = lge_rt8966a_ldo_control( 3, vreg_en );
+		if( rc != 0 )
+			pr_err("%s: CAM_DVDD on failed.\n", __func__);
+
+		pr_err("%s: msm_camera_vreg_config power on ok.\n", __func__);
+	}
+	else {
+		pr_info("%s: msm_camera_vreg_config power off.\n", __func__);
+
+		rc = lge_rt8966a_ldo_control( 3, vreg_en );
+		if( rc != 0 )
+			pr_err("%s: CAM_DVDD off failed.\n", __func__);
+
+		rc = lge_rt8966a_ldo_control( 2, vreg_en );
+		if( rc != 0 )
+			pr_err("%s: CAM_AVDD off failed.\n", __func__);
+
+		rc = lge_rt8966a_ldo_control( 4, vreg_en );
+		if( rc != 0 )
+			pr_err("%s: CAM_IOVDD off failed.\n", __func__);
+
+		pr_err("%s: msm_camera_vreg_config power off ok.\n", __func__);
+	}
+#else
+#if defined (CONFIG_SENSOR_APDS9190)
+
+		if (vreg_en) {
+			pr_err("%s: msm_camera_vreg_config power on vreg_en enable\n", __func__);
+
+			rc = rt9396_ldo_enable(NULL,4,vreg_en);
+			if (rc < 0) {
+				pr_err("%s: rt9396_ldo_enable(ldo4) failed\n", __func__);
+			}
+
+			rc = rt9396_ldo_enable(NULL,2,vreg_en);
+			if (rc < 0) {
+				pr_err("%s: rt9396_ldo_enable(ldo2) failed\n", __func__);
+			}
+
+			rc = rt9396_ldo_enable(NULL,3,vreg_en);
+			if (rc < 0) {
+				pr_err("%s: rt9396_ldo_enable(ldo3) failed\n", __func__);
+			}
+
+		}
+		else {
+
+			pr_err("%s: msm_camera_vreg_config power on vreg_en disable start\n", __func__);
+
+			rc = rt9396_ldo_enable(NULL,3,vreg_en);
+			if (rc < 0) {
+				pr_err("%s: rt9396_ldo_enable(ldo3) OFF failed\n", __func__);
+			}
+
+			rc = rt9396_ldo_enable(NULL,2,vreg_en);
+			if (rc < 0) {
+				pr_err("%s: rt9396_ldo_enable(ldo2) OFF failed\n", __func__);
+			}
+
+			rc = rt9396_ldo_enable(NULL,4,vreg_en);
+			if (rc < 0) {
+				pr_err("%s: rt9396_ldo_enable(ldo4) OFF failed\n", __func__);
+			}
+			pr_err("%s: msm_camera_vreg_config power on vreg_en disable end\n", __func__);
+
+		}
+#else
+
+	if (vreg_en) {
+		pr_err("%s: msm_camera_vreg_config power on vreg_en enable\n", __func__);
+
+		rc = bu61800_ldo_enable(NULL,4,vreg_en);
+		if (rc < 0) {
+			pr_err("%s: bu61800_ldo_enable(ldo4) failed\n", __func__);
+		}
+
+		rc = bu61800_ldo_enable(NULL,2,vreg_en);
+		if (rc < 0) {
+			pr_err("%s: bu61800_ldo_enable(ldo2) failed\n", __func__);
+		}
+
+		rc = bu61800_ldo_enable(NULL,3,vreg_en);
+		if (rc < 0) {
+			pr_err("%s: bu61800_ldo_enable(ldo3) failed\n", __func__);
+		}
+
+	}
+	else {
+
+	 	pr_err("%s: msm_camera_vreg_config power on vreg_en disable start\n", __func__);
+
+		rc = bu61800_ldo_enable(NULL,3,vreg_en);
+		if (rc < 0) {
+			pr_err("%s: bu61800_ldo_enable(ldo3) OFF failed\n", __func__);
+		}
+
+		rc = bu61800_ldo_enable(NULL,2,vreg_en);
+		if (rc < 0) {
+			pr_err("%s: bu61800_ldo_enable(ldo2) OFF failed\n", __func__);
+		}
+
+		rc = bu61800_ldo_enable(NULL,4,vreg_en);
+		if (rc < 0) {
+			pr_err("%s: bu61800_ldo_enable(ldo4) OFF failed\n", __func__);
+		}
+		pr_err("%s: msm_camera_vreg_config power on vreg_en disable end\n", __func__);
+
+	}
+#endif
+#endif
+	return rc;
+}
+#endif
 static int32_t msm_camera_7x27a_ext_power_ctrl(int enable)
 {
 	int rc = 0;
@@ -322,8 +453,8 @@ static struct msm_camera_sensor_platform_info sensor_board_info_hi351 = {
 static struct msm_camera_sensor_info msm_camera_sensor_hi351_data = {
 	.sensor_name    = "hi351",
 	.sensor_reset_enable = 1,
-	.sensor_reset           = 34,
-	.sensor_pwd 		= 42,
+	.sensor_reset           = 34, 		// GPIO_34
+	.sensor_pwd 			= 42, 		// GPIO_42
 	.pdata                  = &msm_camera_device_data_csi1[0],
 	.flash_data             = &flash_hi351,
 	.sensor_platform_info   = &sensor_board_info_hi351,
@@ -384,14 +515,18 @@ static void __init msm7x27a_init_cam(void)
 		sensor_board_info_hi351.cam_vreg = NULL;
 		sensor_board_info_hi351.num_vreg = 0;
 		s_info = &msm_camera_sensor_hi351_data;
-		s_info->sensor_platform_info->ext_power_ctrl = msm_camera_7x27a_ext_power_ctrl;
+		s_info->sensor_platform_info->ext_power_ctrl =
+			msm_camera_7x27a_ext_power_ctrl;
 #endif
 #ifdef CONFIG_T4K28
 		sensor_board_info_t4k28.cam_vreg = NULL;
 		sensor_board_info_t4k28.num_vreg = 0;
 		s_info = &msm_camera_sensor_t4k28_data;
-		s_info->sensor_platform_info->ext_power_ctrl = msm_camera_7x27a_ext_power_ctrl;
+		s_info->sensor_platform_info->ext_power_ctrl =
+			msm_camera_7x27a_ext_power_ctrl;
 #endif
+
+
 	}
 	platform_device_register(&msm_camera_server);
 	platform_device_register(&msm7x27a_device_csic0);
@@ -1054,14 +1189,12 @@ EXPORT_SYMBOL(lcd_camera_power_onoff);
 
 void __init msm7627a_camera_init(void)
 {
-
 #ifndef CONFIG_MSM_CAMERA_V4L2
 	int rc;
 #endif
 
 	pr_debug("msm7627a_camera_init Entered\n");
 
-	/* LCD and camera power (VREG & LDO) init */
 	if (machine_is_msm7627a_evb() || machine_is_msm8625_evb()
 			|| machine_is_msm8625_evt()
 			|| machine_is_msm7627a_qrd3()
@@ -1105,10 +1238,10 @@ void __init msm7627a_camera_init(void)
 		return;
 	}
 #endif
+#ifdef CONFIG_MINIABB_REGULATOR
 	{
 		int rc;
 
-		/* CAM_IOVDD */
 		regulator_cam_iovdd = regulator_get( NULL, "cam_iovdd" );
 		if( regulator_cam_iovdd == NULL ) {
 			pr_err("### %s: could not get regulators: cam_iovdd ###\n", __func__);
@@ -1119,7 +1252,6 @@ void __init msm7627a_camera_init(void)
 				pr_err("### %s: could not set cam_iovdd voltages: %d ###\n", __func__, rc);
 			}
 		}
-		/* CAM_AVDD */
 		regulator_cam_avdd = regulator_get( NULL, "cam_avdd" );
 		if( regulator_cam_avdd == NULL ) {
 			pr_err("### %s: could not get regulators: cam_avdd ###\n", __func__);
@@ -1130,7 +1262,6 @@ void __init msm7627a_camera_init(void)
 				pr_err("### %s: could not set cam_avdd voltages: %d ###\n", __func__, rc);
 			}
 		}
-		/* CAM_DVDD */
 		regulator_cam_dvdd = regulator_get( NULL, "cam_dvdd" );
 		if( regulator_cam_dvdd == NULL ) {
 			pr_err("### %s: could not get regulators: cam_dvdd ###\n", __func__);
@@ -1143,6 +1274,7 @@ void __init msm7627a_camera_init(void)
 			}
 		}
 	}
+#endif
 #if defined(CONFIG_MSM_CAMERA_V4L2)
 	msm7x27a_init_cam();
 #endif

@@ -131,3 +131,11 @@ config MACH_LGE_NO_STOCK_INFO
 	help
 	 LG Stock DEBUG INFO
 
+config MACH_LGE_2ND_GEN_KK_WORKAROUD
+	depends on MACH_LGE
+	bool "MSM7x25A V3 errors Workaround"
+	default n
+	help
+	 Disable support for "Copy splash image to kernel memory".
+	 Used to fix fb0 error in 2nd gen devices and disable keyled.
+
